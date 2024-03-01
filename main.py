@@ -1,16 +1,36 @@
 from operator import add
 import keyboard
-from os import system
+import os
+import sys
+
+
+def verify_os():
+    if sys.platform == "win32" or sys.platform == "cygwin":
+        erasecmd = "cls"
+    else:
+        erasecmd = "clear"
+    return erasecmd
+
+
+def erase_screen():
+    clearcmd = verify_os()
+    os.system(clearcmd)
 
 
 def clear_screen():
-    system("\033[H")
+    print("\033[H", end="")
 
 
 def create_player():
     global player
     x, y = FIRST_ROOM_WIDTH // 8, FIRST_ROOM_HEIGHT // 2
     player = (x, y)
+
+
+def create_enemy():
+    global enemy
+    x, y = FIRST_ROOM_WIDTH - 4, FIRST_ROOM_HEIGHT // 2
+    enemy = (x, y)
 
 
 def check_collision(position):
@@ -48,7 +68,6 @@ def create_room(room_width, room_height):
 
 
 def display_room(room, room_width, room_height):
-    clear_screen()
     for cell in room:
         if cell[0] in (0, room_width - 1) and cell[1] in (
             0,
@@ -57,6 +76,8 @@ def display_room(room, room_width, room_height):
             print("-", end="")
         elif cell == player:
             print("@", end="")
+        elif cell == enemy:
+            print("m", end="")
         elif cell[0] in (0, room_width - 1):
             print("|", end="")
         elif cell[1] in (0, room_height - 1):
@@ -70,13 +91,17 @@ def display_room(room, room_width, room_height):
 keyboard.hook(controls)
 
 FIRST_ROOM_WIDTH = 30
-FIRST_ROOM_HEIGHT = 6
+FIRST_ROOM_HEIGHT = 7
 FIRST_ROOM = create_room(FIRST_ROOM_WIDTH, FIRST_ROOM_HEIGHT)
 
 DIRECTIONS = {"left": (-1, 0), "right": (1, 0), "up": (0, -1), "down": (0, 1)}
 direction = None
 
 create_player()
+create_enemy()
+
+erase_screen()
 
 while True:
+    clear_screen()
     display_room(FIRST_ROOM, FIRST_ROOM_WIDTH, FIRST_ROOM_HEIGHT)
