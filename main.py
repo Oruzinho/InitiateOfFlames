@@ -1,7 +1,6 @@
 from operator import add
-import keyboard
-import os
-import sys
+from colorama import Fore as color
+import keyboard, os, sys
 
 
 def verify_os():
@@ -21,6 +20,23 @@ def clear_screen():
     print("\033[H", end="")
 
 
+def controls(control):
+    global direction, player
+    if control.event_type == keyboard.KEY_DOWN:
+        if control.name == "w":
+            direction = DIRECTIONS["up"]
+            move_player()
+        elif control.name == "a":
+            direction = DIRECTIONS["left"]
+            move_player()
+        elif control.name == "s":
+            direction = DIRECTIONS["down"]
+            move_player()
+        elif control.name == "d":
+            direction = DIRECTIONS["right"]
+            move_player()
+
+
 def create_player():
     global player
     x, y = FIRST_ROOM_WIDTH // 8, FIRST_ROOM_HEIGHT // 2
@@ -33,34 +49,37 @@ def create_enemy():
     enemy = (x, y)
 
 
-def check_collision(position):
-    x, y = position
-    return x in (0, FIRST_ROOM_WIDTH - 1) or y in (0, FIRST_ROOM_HEIGHT - 1)
-
-
 def move_player():
-    global player
+    global player, turn_passed
     new_position = tuple(map(add, player, direction))
 
-    if not check_collision(new_position):
+    if not wall_collision(new_position) and new_position != enemy:
         player = new_position
+        turn_passed = True
 
 
-def controls(e):
-    global direction, player
-    if e.event_type == keyboard.KEY_DOWN:
-        if e.name == "w":
-            direction = DIRECTIONS["up"]
-            move_player()
-        elif e.name == "a":
-            direction = DIRECTIONS["left"]
-            move_player()
-        elif e.name == "s":
-            direction = DIRECTIONS["down"]
-            move_player()
-        elif e.name == "d":
-            direction = DIRECTIONS["right"]
-            move_player()
+def move_enemy():
+    global enemy, turn_passed
+    if turn_passed:
+        distanceX, distanceY = enemy_distance()
+
+        # Movimente o inimigo apenas uma célula em cada direção
+        x_direction = distanceX // abs(distanceX) if distanceX != 0 else 0
+        y_direction = distanceY // abs(distanceY) if distanceY != 0 else 0
+        new_position = tuple(map(add, enemy, (x_direction, y_direction)))
+
+        if not wall_collision(new_position) and new_position != player:
+            enemy = new_position
+            turn_passed = False
+
+
+def enemy_distance():
+    xEnemy, yEnemy = enemy
+    xPlayer, yPlayer = player
+
+    distanceX, distanceY = xPlayer - xEnemy, yPlayer - yEnemy
+
+    return distanceX, distanceY
 
 
 def create_room(room_width, room_height):
@@ -68,24 +87,27 @@ def create_room(room_width, room_height):
 
 
 def display_room(room, room_width, room_height):
-    for cell in room:
-        if cell[0] in (0, room_width - 1) and cell[1] in (
-            0,
-            room_height - 1,
-        ):
-            print("-", end="")
-        elif cell == player:
-            print("@", end="")
-        elif cell == enemy:
-            print("m", end="")
-        elif cell[0] in (0, room_width - 1):
-            print("|", end="")
-        elif cell[1] in (0, room_height - 1):
-            print("-", end="")
-        else:
-            print(".", end="")
-        if cell[0] == room_width - 1:
-            print("")
+    for row in range(room_height):
+        for col in range(room_width):
+            cell = (col, row)
+            if cell[0] in (0, room_width - 1) and cell[1] in (0, room_height - 1):
+                print("-", end="")
+            elif cell[0] in (0, room_width - 1):
+                print("|", end="")
+            elif cell[1] in (0, room_height - 1):
+                print("-", end="")
+            elif cell == player:
+                print("@", end="")
+            elif cell == enemy:
+                print("M", end="")
+            else:
+                print(".", end="")
+        print("")
+
+
+def wall_collision(position):
+    x, y = position
+    return x in (0, FIRST_ROOM_WIDTH - 1) or y in (0, FIRST_ROOM_HEIGHT - 1)
 
 
 keyboard.hook(controls)
@@ -97,6 +119,8 @@ FIRST_ROOM = create_room(FIRST_ROOM_WIDTH, FIRST_ROOM_HEIGHT)
 DIRECTIONS = {"left": (-1, 0), "right": (1, 0), "up": (0, -1), "down": (0, 1)}
 direction = None
 
+turn_passed = False
+
 create_player()
 create_enemy()
 
@@ -105,3 +129,4 @@ erase_screen()
 while True:
     clear_screen()
     display_room(FIRST_ROOM, FIRST_ROOM_WIDTH, FIRST_ROOM_HEIGHT)
+    move_enemy()
