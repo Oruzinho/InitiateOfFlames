@@ -50,27 +50,33 @@ def create_enemy():
 
 
 def move_player():
-    global player, turn_passed
+    global player, turn_passed, turns_counter
     new_position = tuple(map(add, player, direction))
 
     if not wall_collision(new_position) and new_position != enemy:
         player = new_position
         turn_passed = True
+        turns_counter += 1
 
 
 def move_enemy():
-    global enemy, turn_passed
+    global enemy, turn_passed, movement_cooldown
     if turn_passed:
         distanceX, distanceY = enemy_distance()
 
-        # Movimente o inimigo apenas uma célula em cada direção
         x_direction = distanceX // abs(distanceX) if distanceX != 0 else 0
         y_direction = distanceY // abs(distanceY) if distanceY != 0 else 0
+
         new_position = tuple(map(add, enemy, (x_direction, y_direction)))
 
-        if not wall_collision(new_position) and new_position != player:
+        if (
+            not wall_collision(new_position)
+            and new_position != player
+            and not movement_cooldown
+        ):
             enemy = new_position
             turn_passed = False
+            movement_cooldown = True
 
 
 def enemy_distance():
@@ -80,6 +86,14 @@ def enemy_distance():
     distanceX, distanceY = xPlayer - xEnemy, yPlayer - yEnemy
 
     return distanceX, distanceY
+
+
+def cooldown():
+    global movement_cooldown, turns_counter
+    if movement_cooldown:
+        if turns_counter >= 2:
+            turns_counter = 0
+            movement_cooldown = False
 
 
 def create_room(room_width, room_height):
@@ -99,7 +113,7 @@ def display_room(room, room_width, room_height):
             elif cell == player:
                 print("@", end="")
             elif cell == enemy:
-                print("M", end="")
+                print("e", end="")
             else:
                 print(".", end="")
         print("")
@@ -120,6 +134,8 @@ DIRECTIONS = {"left": (-1, 0), "right": (1, 0), "up": (0, -1), "down": (0, 1)}
 direction = None
 
 turn_passed = False
+movement_cooldown = False
+turns_counter = 0
 
 create_player()
 create_enemy()
@@ -130,3 +146,4 @@ while True:
     clear_screen()
     display_room(FIRST_ROOM, FIRST_ROOM_WIDTH, FIRST_ROOM_HEIGHT)
     move_enemy()
+    cooldown()
